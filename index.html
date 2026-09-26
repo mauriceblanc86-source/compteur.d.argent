@@ -54,13 +54,36 @@
         }
     </style>
 </head>
-<body class="bg-black text-white font-sans antialiased min-h-screen flex flex-col justify-between max-w-md mx-auto border-x border-nothing-border shadow-2xl">
+<body class="bg-black text-white font-sans antialiased min-h-screen flex flex-col justify-between max-w-md mx-auto border-x border-nothing-border shadow-2xl relative">
 
-    <!-- En-tête Nothing Style avec Solde Global toujours visible -->
+    <!-- En-tête Nothing Style avec Solde Global toujours visible et Menu 3 Points -->
     <header class="p-5 pt-8 bg-black sticky top-0 z-20 border-b border-nothing-border">
         <div class="flex justify-between items-center mb-1">
-            <span class="text-xs uppercase tracking-widest text-nothing-muted font-mono">Mon Solde Actuel</span>
-            <span class="inline-block w-2 h-2 rounded-full bg-red-600 animate-pulse" title="Mode Local Actif"></span>
+            <div class="flex items-center gap-2">
+                <span id="walletLabel" class="text-xs uppercase tracking-widest text-nothing-muted font-mono">Mon Solde (EUR)</span>
+                <span class="inline-block w-2 h-2 rounded-full bg-red-600 animate-pulse" title="Mode Local Actif"></span>
+            </div>
+            
+            <!-- Bouton 3 Points pour changer de Portefeuille -->
+            <div class="relative">
+                <button type="button" onclick="toggleWalletMenu()" class="p-1.5 text-nothing-muted hover:text-white rounded-lg hover:bg-nothing-card transition-colors">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                    </svg>
+                </button>
+                <!-- Menu déroulant Portefeuille -->
+                <div id="walletMenu" class="hidden absolute right-0 mt-2 w-48 bg-nothing-card border border-nothing-border rounded-xl shadow-2xl py-1 z-30 font-mono text-xs">
+                    <div class="px-3 py-1.5 text-[10px] text-nothing-muted uppercase border-b border-nothing-border">Changer de portefeuille</div>
+                    <button type="button" onclick="selectWallet('EUR')" class="w-full text-left px-4 py-2.5 hover:bg-nothing-border flex justify-between items-center transition-colors">
+                        <span>Euro (€)</span>
+                        <span id="check-eur" class="text-white font-bold">✓</span>
+                    </button>
+                    <button type="button" onclick="selectWallet('TND')" class="w-full text-left px-4 py-2.5 hover:bg-nothing-border flex justify-between items-center transition-colors">
+                        <span>Dinar (DT)</span>
+                        <span id="check-tnd" class="text-white font-bold hidden">✓</span>
+                    </button>
+                </div>
+            </div>
         </div>
         <div id="totalBalance" class="text-4xl font-extrabold tracking-tight font-mono text-white">
             0,00 €
@@ -86,11 +109,11 @@
 
             <!-- Saisie de la somme -->
             <div class="space-y-2">
-                <label for="amount" class="block text-xs uppercase tracking-widest text-nothing-muted font-mono">Montant (€)</label>
+                <label for="amount" id="amountLabel" class="block text-xs uppercase tracking-widest text-nothing-muted font-mono">Montant (€)</label>
                 <div class="relative">
                     <input type="number" id="amount" step="0.01" inputmode="decimal" placeholder="0,00" 
                            class="w-full bg-nothing-card border border-nothing-border rounded-2xl p-4 text-3xl font-mono text-white focus:outline-none focus:border-white transition-colors" />
-                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xl font-mono text-nothing-muted">€</span>
+                    <span id="currencySymbol" class="absolute right-4 top-1/2 -translate-y-1/2 text-xl font-mono text-nothing-muted">€</span>
                 </div>
             </div>
 
@@ -165,7 +188,7 @@
     </nav>
 
     <script>
-        // Catégories imposées par le cahier des charges
+        // Catégories imposées
         const CATEGORIES = [
             "Argent de poche",
             "Courses",
@@ -176,24 +199,82 @@
             "Autre"
         ];
 
+        // Configuration des devises
+        const CURRENCIES = {
+            'EUR': { label: 'Mon Solde (EUR)', symbol: '€', storageKey: 'nothing_money_data_eur' },
+            'TND': { label: 'Mon Solde (TND)', symbol: 'DT', storageKey: 'nothing_money_data_tnd' }
+        };
+
         // État initial
+        let currentWallet = localStorage.getItem('nothing_money_active_wallet') || 'EUR';
         let transactions = [];
         let currentType = 'expense'; // 'expense' ou 'income'
         let selectedCategory = CATEGORIES[0];
 
         // Initialisation au chargement de la page
         window.onload = function() {
+            updateWalletUI();
             loadTransactions();
             renderCategories();
             updateUI();
         };
 
+        // Menu déroulant 3 points
+        function toggleWalletMenu() {
+            const menu = document.getElementById('walletMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Fermer le menu si clic à l'extérieur
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('walletMenu');
+            const button = e.target.closest('button');
+            if (!menu.classList.contains('hidden') && (!button || !button.getAttribute('onclick')?.includes('toggleWalletMenu'))) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        // Basculer de portefeuille
+        function selectWallet(walletKey) {
+            currentWallet = walletKey;
+            localStorage.setItem('nothing_money_active_wallet', walletKey);
+            document.getElementById('walletMenu').classList.add('hidden');
+            
+            updateWalletUI();
+            loadTransactions();
+            updateUI();
+            
+            const historySec = document.getElementById('tab-history');
+            if (!historySec.classList.contains('hidden')) {
+                renderHistory();
+            }
+        }
+
+        // Mise à jour visuelle des devises/labels
+        function updateWalletUI() {
+            const symbol = CURRENCIES[currentWallet].symbol;
+            document.getElementById('walletLabel').innerText = CURRENCIES[currentWallet].label;
+            document.getElementById('amountLabel').innerText = `Montant (${symbol})`;
+            document.getElementById('currencySymbol').innerText = symbol;
+
+            if (currentWallet === 'EUR') {
+                document.getElementById('check-eur').classList.remove('hidden');
+                document.getElementById('check-tnd').classList.add('hidden');
+            } else {
+                document.getElementById('check-eur').classList.add('hidden');
+                document.getElementById('check-tnd').classList.remove('hidden');
+            }
+        }
+
         // Charger les données depuis le LocalStorage
         function loadTransactions() {
             try {
-                const saved = localStorage.getItem('nothing_money_data');
+                const key = CURRENCIES[currentWallet].storageKey;
+                const saved = localStorage.getItem(key);
                 if (saved) {
                     transactions = JSON.parse(saved);
+                } else {
+                    transactions = [];
                 }
             } catch (e) {
                 console.error("Erreur de chargement du LocalStorage", e);
@@ -204,7 +285,8 @@
         // Sauvegarder les données en local
         function saveTransactions() {
             try {
-                localStorage.setItem('nothing_money_data', JSON.stringify(transactions));
+                const key = CURRENCIES[currentWallet].storageKey;
+                localStorage.setItem(key, JSON.stringify(transactions));
             } catch (e) {
                 console.error("Erreur de sauvegarde dans LocalStorage", e);
             }
@@ -298,7 +380,7 @@
                 date: `${dateStr} à ${timeStr}`
             };
 
-            transactions.unshift(newTx); // Ajouter au début pour l'ordre le plus récent
+            transactions.unshift(newTx);
             saveTransactions();
             updateUI();
 
@@ -323,8 +405,7 @@
         function confirmClearAll() {
             if (transactions.length === 0) return;
             
-            // Boîte de dialogue intégrée sans alert/confirm natif bloquant
-            if (window.confirm("Es-tu sûr de vouloir effacer tout ton historique de compte ?")) {
+            if (window.confirm("Es-tu sûr de vouloir effacer tout l'historique de ce portefeuille ?")) {
                 transactions = [];
                 saveTransactions();
                 updateUI();
@@ -348,20 +429,20 @@
                 }
             });
 
-            // Formatage en Euros
-            const formatEUR = (val) => val.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+            const symbol = CURRENCIES[currentWallet].symbol;
+            const formatCurr = (val) => val.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + symbol;
 
             const totalEl = document.getElementById('totalBalance');
             if (total >= 0) {
-                totalEl.innerText = `+ ${formatEUR(total)}`;
+                totalEl.innerText = `+ ${formatCurr(total)}`;
                 totalEl.className = "text-4xl font-extrabold tracking-tight font-mono text-white";
             } else {
-                totalEl.innerText = `- ${formatEUR(Math.abs(total))}`;
+                totalEl.innerText = `- ${formatCurr(Math.abs(total))}`;
                 totalEl.className = "text-4xl font-extrabold tracking-tight font-mono text-nothing-red";
             }
 
-            document.getElementById('stat-gains').innerText = `+ ${formatEUR(totalGains)}`;
-            document.getElementById('stat-expenses').innerText = `- ${formatEUR(totalExpenses)}`;
+            document.getElementById('stat-gains').innerText = `+ ${formatCurr(totalGains)}`;
+            document.getElementById('stat-expenses').innerText = `- ${formatCurr(totalExpenses)}`;
         }
 
         // Afficher la liste de l'historique
@@ -372,18 +453,20 @@
             if (transactions.length === 0) {
                 listContainer.innerHTML = `
                     <div class="text-center py-12 text-nothing-muted font-mono text-xs border border-dashed border-nothing-border rounded-2xl">
-                        Aucune transaction enregistrée pour le moment.
+                        Aucune transaction enregistrée pour ce portefeuille.
                     </div>
                 `;
                 return;
             }
+
+            const symbol = CURRENCIES[currentWallet].symbol;
 
             transactions.forEach(tx => {
                 const item = document.createElement('div');
                 item.className = "bg-nothing-card border border-nothing-border p-4 rounded-2xl flex justify-between items-center";
 
                 const isGain = tx.type === 'income';
-                const amountText = (isGain ? '+ ' : '- ') + tx.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' €';
+                const amountText = (isGain ? '+ ' : '- ') + tx.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' ' + symbol;
                 const amountColor = isGain ? 'text-emerald-400' : 'text-nothing-red';
 
                 item.innerHTML = `
@@ -404,6 +487,6 @@
                 listContainer.appendChild(item);
             });
         }
-<script>
+    </script>
 </body>
 </html>
