@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mon Argent - Nothing OS Local</title>
+    <!-- Tailwind CSS pour un rendu fluide et responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        nothing: {
+                            bg: '#000000',
+                            card: '#121212',
+                            border: '#2A2A2A',
+                            red: '#D71921',
+                            white: '#FFFFFF',
+                            muted: '#8E8E93',
+                            accent: '#222222'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Desactivation de la sélection accidentelle lors des clics rapides */
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            background-color: #000000;
+            color: #FFFFFF;
+        }
+        /* Style personnalisé pour effacer l'apparence des inputs numériques */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        /* Animation d'appui sur les boutons */
+        .btn-active:active {
+            transform: scale(0.96);
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body class="bg-black text-white font-sans antialiased min-h-screen flex flex-col justify-between max-w-md mx-auto border-x border-nothing-border shadow-2xl">
+
+    <!-- En-tête Nothing Style avec Solde Global toujours visible -->
+    <header class="p-5 pt-8 bg-black sticky top-0 z-20 border-b border-nothing-border">
+        <div class="flex justify-between items-center mb-1">
+            <span class="text-xs uppercase tracking-widest text-nothing-muted font-mono">Mon Solde Actuel</span>
+            <span class="inline-block w-2 h-2 rounded-full bg-red-600 animate-pulse" title="Mode Local Actif"></span>
+        </div>
+        <div id="totalBalance" class="text-4xl font-extrabold tracking-tight font-mono text-white">
+            0,00 €
+        </div>
+    </header>
+
+    <!-- Conteneur principal de l'application -->
+    <main class="flex-1 p-5 pb-24 overflow-y-auto">
+
+        <!-- Onglet 1 : Ajouter une transaction -->
+        <section id="tab-add" class="space-y-6">
+            <!-- Sélecteur Type : Gain vs Dépense -->
+            <div class="grid grid-cols-2 gap-3 p-1 bg-nothing-card rounded-2xl border border-nothing-border">
+                <button type="button" id="btn-expense" onclick="setType('expense')" 
+                        class="py-3 font-semibold text-sm rounded-xl transition-all duration-150 btn-active flex items-center justify-center gap-2 bg-nothing-red text-white">
+                    <span>—</span> Dépense
+                </button>
+                <button type="button" id="btn-income" onclick="setType('income')" 
+                        class="py-3 font-semibold text-sm rounded-xl transition-all duration-150 btn-active flex items-center justify-center gap-2 bg-transparent text-nothing-muted">
+                    <span>+</span> Gain
+                </button>
+            </div>
+
+            <!-- Saisie de la somme -->
+            <div class="space-y-2">
+                <label for="amount" class="block text-xs uppercase tracking-widest text-nothing-muted font-mono">Montant (€)</label>
+                <div class="relative">
+                    <input type="number" id="amount" step="0.01" inputmode="decimal" placeholder="0,00" 
+                           class="w-full bg-nothing-card border border-nothing-border rounded-2xl p-4 text-3xl font-mono text-white focus:outline-none focus:border-white transition-colors" />
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xl font-mono text-nothing-muted">€</span>
+                </div>
+            </div>
+
+            <!-- Choix de la catégorie (Raison) -->
+            <div class="space-y-2">
+                <label class="block text-xs uppercase tracking-widest text-nothing-muted font-mono">Catégorie / Raison</label>
+                <div class="grid grid-cols-2 gap-2" id="categories-grid">
+                    <!-- Généré dynamiquement en JS pour faciliter l'interaction -->
+                </div>
+            </div>
+
+            <!-- Bouton Valider -->
+            <button type="button" onclick="submitTransaction()" 
+                    class="w-full py-4 bg-white text-black font-extrabold text-base rounded-2xl border border-white btn-active shadow-lg transition-all mt-4 uppercase tracking-wider">
+                Enregistrer
+            </button>
+
+            <!-- Notification de confirmation -->
+            <div id="toast" class="hidden text-center text-xs text-emerald-400 font-mono py-2 bg-emerald-950/40 rounded-xl border border-emerald-900/50">
+                Transaction enregistrée avec succès !
+            </div>
+        </section>
+
+        <!-- Onglet 2 : Historique complet -->
+        <section id="tab-history" class="hidden space-y-5">
+            <!-- Statistiques / Résumé rapide -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-nothing-card p-4 rounded-2xl border border-nothing-border">
+                    <span class="block text-[10px] uppercase tracking-wider text-nothing-muted font-mono">Total Gains</span>
+                    <span id="stat-gains" class="text-lg font-bold font-mono text-emerald-400">+0,00 €</span>
+                </div>
+                <div class="bg-nothing-card p-4 rounded-2xl border border-nothing-border">
+                    <span class="block text-[10px] uppercase tracking-wider text-nothing-muted font-mono">Total Dépenses</span>
+                    <span id="stat-expenses" class="text-lg font-bold font-mono text-nothing-red">-0,00 €</span>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-2">
+                <h2 class="text-xs uppercase tracking-widest text-nothing-muted font-mono">Historique des transactions</h2>
+                <button onclick="confirmClearAll()" class="text-xs text-nothing-muted hover:text-nothing-red transition-colors underline font-mono">
+                    Tout effacer
+                </button>
+            </div>
+
+            <!-- Liste des transactions -->
+            <div id="history-list" class="space-y-2">
+                <!-- Les éléments d'historique s'afficheront ici -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Barre de navigation inférieure (2 Onglets principaux) -->
+    <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-black/90 backdrop-blur-md border-t border-nothing-border p-2 px-6 flex justify-around z-30">
+        <button id="nav-add" onclick="switchTab('add')" 
+                class="flex-1 py-3 flex flex-col items-center gap-1 text-white transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            <span class="text-[11px] font-mono tracking-wider">Ajouter</span>
+        </button>
+        
+        <div class="w-px bg-nothing-border my-2"></div>
+
+        <button id="nav-history" onclick="switchTab('history')" 
+                class="flex-1 py-3 flex flex-col items-center gap-1 text-nothing-muted transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+            </svg>
+            <span class="text-[11px] font-mono tracking-wider">Historique</span>
+        </button>
+    </nav>
+
+    <script>
+        // Catégories imposées par le cahier des charges
+        const CATEGORIES = [
+            "Argent de poche",
+            "Courses",
+            "Sorties",
+            "Transport",
+            "Loisirs",
+            "Cadeaux",
+            "Autre"
+        ];
+
+        // État initial
+        let transactions = [];
+        let currentType = 'expense'; // 'expense' ou 'income'
+        let selectedCategory = CATEGORIES[0];
+
+        // Initialisation au chargement de la page
+        window.onload = function() {
+            loadTransactions();
+            renderCategories();
+            updateUI();
+        };
+
+        // Charger les données depuis le LocalStorage
+        function loadTransactions() {
+            try {
+                const saved = localStorage.getItem('nothing_money_data');
+                if (saved) {
+                    transactions = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.error("Erreur de chargement du LocalStorage", e);
+                transactions = [];
+            }
+        }
+
+        // Sauvegarder les données en local
+        function saveTransactions() {
+            try {
+                localStorage.setItem('nothing_money_data', JSON.stringify(transactions));
+            } catch (e) {
+                console.error("Erreur de sauvegarde dans LocalStorage", e);
+            }
+        }
+
+        // Changer d'onglet (Ajouter vs Historique)
+        function switchTab(tab) {
+            const addSec = document.getElementById('tab-add');
+            const historySec = document.getElementById('tab-history');
+            const navAdd = document.getElementById('nav-add');
+            const navHistory = document.getElementById('nav-history');
+
+            if (tab === 'add') {
+                addSec.classList.remove('hidden');
+                historySec.classList.add('hidden');
+                navAdd.className = "flex-1 py-3 flex flex-col items-center gap-1 text-white transition-colors";
+                navHistory.className = "flex-1 py-3 flex flex-col items-center gap-1 text-nothing-muted transition-colors";
+            } else {
+                addSec.classList.add('hidden');
+                historySec.classList.remove('hidden');
+                navAdd.className = "flex-1 py-3 flex flex-col items-center gap-1 text-nothing-muted transition-colors";
+                navHistory.className = "flex-1 py-3 flex flex-col items-center gap-1 text-white transition-colors";
+                renderHistory();
+            }
+        }
+
+        // Basculer le type entre Dépense (-) et Gain (+)
+        function setType(type) {
+            currentType = type;
+            const btnExpense = document.getElementById('btn-expense');
+            const btnIncome = document.getElementById('btn-income');
+
+            if (type === 'expense') {
+                btnExpense.className = "py-3 font-semibold text-sm rounded-xl transition-all duration-150 btn-active flex items-center justify-center gap-2 bg-nothing-red text-white shadow-md";
+                btnIncome.className = "py-3 font-semibold text-sm rounded-xl transition-all duration-150 btn-active flex items-center justify-center gap-2 bg-transparent text-nothing-muted";
+            } else {
+                btnIncome.className = "py-3 font-semibold text-sm rounded-xl transition-all duration-150 btn-active flex items-center justify-center gap-2 bg-emerald-600 text-white shadow-md";
+                btnExpense.className = "py-3 font-semibold text-sm rounded-xl transition-all duration-150 btn-active flex items-center justify-center gap-2 bg-transparent text-nothing-muted";
+            }
+        }
+
+        // Afficher les catégories autorisées sous forme de grille de boutons
+        function renderCategories() {
+            const container = document.getElementById('categories-grid');
+            container.innerHTML = '';
+
+            CATEGORIES.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.innerText = cat;
+                btn.onclick = () => selectCategory(cat);
+                
+                const isSelected = (cat === selectedCategory);
+                btn.className = `p-3 text-xs font-medium rounded-xl border text-left transition-all btn-active ${
+                    isSelected 
+                    ? 'bg-white text-black border-white font-bold shadow' 
+                    : 'bg-nothing-card text-nothing-muted border-nothing-border hover:border-gray-600'
+                }`;
+                btn.id = `cat-btn-${cat.replace(/\s+/g, '-')}`;
+                container.appendChild(btn);
+            });
+        }
+
+        // Sélectionner une catégorie
+        function selectCategory(cat) {
+            selectedCategory = cat;
+            renderCategories();
+        }
+
+        // Enregistrer une nouvelle transaction
+        function submitTransaction() {
+            const amountInput = document.getElementById('amount');
+            const amountVal = parseFloat(amountInput.value.replace(',', '.'));
+
+            if (isNaN(amountVal) || amountVal <= 0) {
+                amountInput.focus();
+                amountInput.classList.add('border-nothing-red');
+                setTimeout(() => amountInput.classList.remove('border-nothing-red'), 1500);
+                return;
+            }
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+            const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+            const newTx = {
+                id: Date.now(),
+                type: currentType,
+                amount: amountVal,
+                category: selectedCategory,
+                date: `${dateStr} à ${timeStr}`
+            };
+
+            transactions.unshift(newTx); // Ajouter au début pour l'ordre le plus récent
+            saveTransactions();
+            updateUI();
+
+            // Réinitialiser le champ montant
+            amountInput.value = '';
+
+            // Notification visuelle rapide
+            const toast = document.getElementById('toast');
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2000);
+        }
+
+        // Supprimer une transaction spécifique
+        function deleteTransaction(id) {
+            transactions = transactions.filter(tx => tx.id !== id);
+            saveTransactions();
+            updateUI();
+            renderHistory();
+        }
+
+        // Effacer tout l'historique
+        function confirmClearAll() {
+            if (transactions.length === 0) return;
+            
+            // Boîte de dialogue intégrée sans alert/confirm natif bloquant
+            if (window.confirm("Es-tu sûr de vouloir effacer tout ton historique de compte ?")) {
+                transactions = [];
+                saveTransactions();
+                updateUI();
+                renderHistory();
+            }
+        }
+
+        // Mettre à jour les éléments globaux du solde et des totaux
+        function updateUI() {
+            let total = 0;
+            let totalGains = 0;
+            let totalExpenses = 0;
+
+            transactions.forEach(tx => {
+                if (tx.type === 'income') {
+                    total += tx.amount;
+                    totalGains += tx.amount;
+                } else {
+                    total -= tx.amount;
+                    totalExpenses += tx.amount;
+                }
+            });
+
+            // Formatage en Euros
+            const formatEUR = (val) => val.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
+            const totalEl = document.getElementById('totalBalance');
+            if (total >= 0) {
+                totalEl.innerText = `+ ${formatEUR(total)}`;
+                totalEl.className = "text-4xl font-extrabold tracking-tight font-mono text-white";
+            } else {
+                totalEl.innerText = `- ${formatEUR(Math.abs(total))}`;
+                totalEl.className = "text-4xl font-extrabold tracking-tight font-mono text-nothing-red";
+            }
+
+            document.getElementById('stat-gains').innerText = `+ ${formatEUR(totalGains)}`;
+            document.getElementById('stat-expenses').innerText = `- ${formatEUR(totalExpenses)}`;
+        }
+
+        // Afficher la liste de l'historique
+        function renderHistory() {
+            const listContainer = document.getElementById('history-list');
+            listContainer.innerHTML = '';
+
+            if (transactions.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="text-center py-12 text-nothing-muted font-mono text-xs border border-dashed border-nothing-border rounded-2xl">
+                        Aucune transaction enregistrée pour le moment.
+                    </div>
+                `;
+                return;
+            }
+
+            transactions.forEach(tx => {
+                const item = document.createElement('div');
+                item.className = "bg-nothing-card border border-nothing-border p-4 rounded-2xl flex justify-between items-center";
+
+                const isGain = tx.type === 'income';
+                const amountText = (isGain ? '+ ' : '- ') + tx.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' €';
+                const amountColor = isGain ? 'text-emerald-400' : 'text-nothing-red';
+
+                item.innerHTML = `
+                    <div class="flex flex-col gap-0.5">
+                        <span class="font-bold text-sm text-white">${tx.category}</span>
+                        <span class="text-[10px] font-mono text-nothing-muted">${tx.date}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-mono font-extrabold text-sm ${amountColor}">${amountText}</span>
+                        <button onclick="deleteTransaction(${tx.id})" title="Supprimer" 
+                                class="p-2 text-nothing-muted hover:text-white transition-colors rounded-lg hover:bg-nothing-border">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+    </script>
+</body>
+</html>
