@@ -4,12 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Compteur</title>
+    
+    <!-- PWA & Service Worker -->
     <link rel="manifest" href="./manifest.json">
     <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js');
       }
     </script>
+
+    <!-- Tailwind CSS CDN (Nécessaire pour charger les styles) -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -55,8 +60,8 @@
     <header class="p-5 pt-8 bg-black sticky top-0 z-20 border-b border-nothing-border">
         <div class="flex justify-between items-center mb-1">
             <div class="flex items-center gap-2">
-                <span id="walletLabel" class="text-xs uppercase tracking-widest text-nothing-muted font-mono">Mon Solde (EUR)</span>
-                <span class="inline-block w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                <span id="walletLabel" class="text-xs uppercase tracking-widest text-nothing-muted font-mono">Mon Solde (DT)</span>
+                <span class="inline-block w-2 h-2 rounded-full bg-nothing-red animate-pulse"></span>
             </div>
             
             <div class="relative">
@@ -67,19 +72,19 @@
                 </button>
                 <div id="walletMenu" class="hidden absolute right-0 mt-2 w-48 bg-nothing-card border border-nothing-border rounded-xl shadow-2xl py-1 z-30 font-mono text-xs">
                     <div class="px-3 py-1.5 text-[10px] text-nothing-muted uppercase border-b border-nothing-border">Changer de portefeuille</div>
-                    <button type="button" onclick="selectWallet('EUR')" class="w-full text-left px-4 py-2.5 hover:bg-nothing-border flex justify-between items-center transition-colors">
-                        <span>Euro (€)</span>
-                        <span id="check-eur" class="text-white font-bold">✓</span>
-                    </button>
                     <button type="button" onclick="selectWallet('TND')" class="w-full text-left px-4 py-2.5 hover:bg-nothing-border flex justify-between items-center transition-colors">
                         <span>Dinar (DT)</span>
-                        <span id="check-tnd" class="text-white font-bold hidden">✓</span>
+                        <span id="check-tnd" class="text-white font-bold">✓</span>
+                    </button>
+                    <button type="button" onclick="selectWallet('EUR')" class="w-full text-left px-4 py-2.5 hover:bg-nothing-border flex justify-between items-center transition-colors">
+                        <span>Euro (€)</span>
+                        <span id="check-eur" class="text-white font-bold hidden">✓</span>
                     </button>
                 </div>
             </div>
         </div>
         <div id="totalBalance" class="text-4xl font-extrabold tracking-tight font-mono text-white">
-            0,00 €
+            0,00 DT
         </div>
     </header>
 
@@ -97,11 +102,11 @@
             </div>
 
             <div class="space-y-2">
-                <label for="amount" id="amountLabel" class="block text-xs uppercase tracking-widest text-nothing-muted font-mono">Montant (€)</label>
+                <label for="amount" id="amountLabel" class="block text-xs uppercase tracking-widest text-nothing-muted font-mono">Montant (DT)</label>
                 <div class="relative">
                     <input type="number" id="amount" step="0.01" inputmode="decimal" placeholder="0,00" 
                            class="w-full bg-nothing-card border border-nothing-border rounded-2xl p-4 text-3xl font-mono text-white focus:outline-none focus:border-white transition-colors" />
-                    <span id="currencySymbol" class="absolute right-4 top-1/2 -translate-y-1/2 text-xl font-mono text-nothing-muted">€</span>
+                    <span id="currencySymbol" class="absolute right-4 top-1/2 -translate-y-1/2 text-xl font-mono text-nothing-muted">DT</span>
                 </div>
             </div>
 
@@ -124,11 +129,11 @@
             <div class="grid grid-cols-2 gap-3">
                 <div class="bg-nothing-card p-4 rounded-2xl border border-nothing-border">
                     <span class="block text-[10px] uppercase tracking-wider text-nothing-muted font-mono">Total Gains</span>
-                    <span id="stat-gains" class="text-lg font-bold font-mono text-emerald-400">+0,00 €</span>
+                    <span id="stat-gains" class="text-lg font-bold font-mono text-emerald-400">+0,00 DT</span>
                 </div>
                 <div class="bg-nothing-card p-4 rounded-2xl border border-nothing-border">
                     <span class="block text-[10px] uppercase tracking-wider text-nothing-muted font-mono">Total Dépenses</span>
-                    <span id="stat-expenses" class="text-lg font-bold font-mono text-nothing-red">-0,00 €</span>
+                    <span id="stat-expenses" class="text-lg font-bold font-mono text-nothing-red">-0,00 DT</span>
                 </div>
             </div>
 
@@ -162,11 +167,11 @@
     <script>
         const CATEGORIES = ["Argent de poche", "Courses", "Sorties", "Transport", "Loisirs", "Cadeaux", "Autre"];
         const CURRENCIES = {
-            'EUR': { label: 'Mon Solde (EUR)', symbol: '€', storageKey: 'nothing_money_data_eur' },
-            'TND': { label: 'Mon Solde (TND)', symbol: 'DT', storageKey: 'nothing_money_data_tnd' }
+            'TND': { label: 'Mon Solde (TND)', symbol: 'DT', storageKey: 'nothing_money_data_tnd' },
+            'EUR': { label: 'Mon Solde (EUR)', symbol: '€', storageKey: 'nothing_money_data_eur' }
         };
 
-        let currentWallet = localStorage.getItem('nothing_money_active_wallet') || 'EUR';
+        let currentWallet = localStorage.getItem('nothing_money_active_wallet') || 'TND';
         let transactions = [];
         let currentType = 'expense';
         let selectedCategory = CATEGORIES[0];
@@ -217,13 +222,144 @@
         function loadTransactions() {
             try {
                 const saved = localStorage.getItem(CURRENCIES[currentWallet].storageKey);
-                transactions = saved ? JSON.parseCette affirmation n'est pas exacte. (2/5)
+                transactions = saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                transactions = [];
+            }
+        }
 
-Vous pouvez ajouter un raccourci de n'importe quel site web ou application directement sur votre bureau via Google Chrome ou Brave en quelques clics, sans passer par GitHub :
+        function saveTransactions() {
+            localStorage.setItem(CURRENCIES[currentWallet].storageKey, JSON.stringify(transactions));
+        }
 
-1. Ouvrez la page dans Chrome ou Brave.
-2. Cliquez sur les **trois points** (menu en haut à droite).
-3. Allez dans **Enregistrer et partager** (ou *Plus d'outils*).
-4. Cliquez sur **Créer un raccourci...** (cochez *Ouvrir dans une fenêtre* si vous souhaitez le comportement d'une application).
+        function renderCategories() {
+            const container = document.getElementById('categories-grid');
+            container.innerHTML = CATEGORIES.map((cat, idx) => `
+                <button type="button" onclick="selectCategory('${cat}')" id="cat-${idx}" 
+                        class="cat-btn text-left p-3 text-xs font-mono rounded-xl border transition-all ${idx === 0 ? 'bg-white text-black border-white font-bold' : 'bg-nothing-card text-nothing-muted border-nothing-border hover:border-white/40'}">
+                    ${cat}
+                </button>
+            `).join('');
+        }
 
-GitHub sert à héberger votre code ou votre projet, mais le navigateur intègre déjà nativement la possibilité de créer des raccourcis sur le bureau pour n'importe quel lien.
+        function selectCategory(cat) {
+            selectedCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                if (btn.innerText.trim() === cat) {
+                    btn.className = "cat-btn text-left p-3 text-xs font-mono rounded-xl border transition-all bg-white text-black border-white font-bold";
+                } else {
+                    btn.className = "cat-btn text-left p-3 text-xs font-mono rounded-xl border transition-all bg-nothing-card text-nothing-muted border-nothing-border hover:border-white/40";
+                }
+            });
+        }
+
+        function setType(type) {
+            currentType = type;
+            const btnExpense = document.getElementById('btn-expense');
+            const btnIncome = document.getElementById('btn-income');
+            if (type === 'expense') {
+                btnExpense.className = "py-3 font-semibold text-sm rounded-xl transition-all duration-150 btn-active flex items-center justify-center gap-2 bg-nothing-red text-white";
+                btnIncome.className = "py-3 font-semibold text-sm rounded-xl transition-all duration-150 btn-active flex items-center justify-center gap-2 bg-transparent text-nothing-muted";
+            } else {
+                btnIncome.className = "py-3 font-semibold text-sm rounded-xl transition-all duration-150 btn-active flex items-center justify-center gap-2 bg-emerald-600 text-white";
+                btnExpense.className = "py-3 font-semibold text-sm rounded-xl transition-all duration-150 btn-active flex items-center justify-center gap-2 bg-transparent text-nothing-muted";
+            }
+        }
+
+        function submitTransaction() {
+            const amountInput = document.getElementById('amount');
+            const val = parseFloat(amountInput.value);
+            if (isNaN(val) || val <= 0) return;
+
+            const item = {
+                id: Date.now(),
+                type: currentType,
+                amount: val,
+                category: selectedCategory,
+                date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+            };
+
+            transactions.unshift(item);
+            saveTransactions();
+            updateUI();
+            amountInput.value = '';
+
+            const toast = document.getElementById('toast');
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2000);
+        }
+
+        function updateUI() {
+            const symbol = CURRENCIES[currentWallet].symbol;
+            let balance = 0, gains = 0, expenses = 0;
+            transactions.forEach(t => {
+                if (t.type === 'income') { gains += t.amount; balance += t.amount; }
+                else { expenses += t.amount; balance -= t.amount; }
+            });
+
+            document.getElementById('totalBalance').innerText = `${balance.toFixed(2)} ${symbol}`;
+            document.getElementById('stat-gains').innerText = `+${gains.toFixed(2)} ${symbol}`;
+            document.getElementById('stat-expenses').innerText = `-${expenses.toFixed(2)} ${symbol}`;
+        }
+
+        function switchTab(tab) {
+            const tabAdd = document.getElementById('tab-add');
+            const tabHistory = document.getElementById('tab-history');
+            const navAdd = document.getElementById('nav-add');
+            const navHistory = document.getElementById('nav-history');
+
+            if (tab === 'add') {
+                tabAdd.classList.remove('hidden');
+                tabHistory.classList.add('hidden');
+                navAdd.className = "flex-1 py-3 flex flex-col items-center gap-1 text-white transition-colors";
+                navHistory.className = "flex-1 py-3 flex flex-col items-center gap-1 text-nothing-muted transition-colors";
+            } else {
+                tabAdd.classList.add('hidden');
+                tabHistory.classList.remove('hidden');
+                navHistory.className = "flex-1 py-3 flex flex-col items-center gap-1 text-white transition-colors";
+                navAdd.className = "flex-1 py-3 flex flex-col items-center gap-1 text-nothing-muted transition-colors";
+                renderHistory();
+            }
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-list');
+            const symbol = CURRENCIES[currentWallet].symbol;
+            if (transactions.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-xs text-nothing-muted font-mono">Aucune transaction enregistrée.</div>`;
+                return;
+            }
+            container.innerHTML = transactions.map(t => `
+                <div class="p-3 bg-nothing-card border border-nothing-border rounded-xl flex justify-between items-center font-mono">
+                    <div>
+                        <div class="text-xs text-white font-bold">${t.category}</div>
+                        <div class="text-[10px] text-nothing-muted">${t.date}</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-bold ${t.type === 'income' ? 'text-emerald-400' : 'text-nothing-red'}">
+                            ${t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)} ${symbol}
+                        </span>
+                        <button onclick="deleteItem(${t.id})" class="text-nothing-muted hover:text-white p-1">✕</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteItem(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            saveTransactions();
+            updateUI();
+            renderHistory();
+        }
+
+        function confirmClearAll() {
+            if (confirm("Effacer toutes les transactions de ce portefeuille ?")) {
+                transactions = [];
+                saveTransactions();
+                updateUI();
+                renderHistory();
+            }
+        }
+    </script>
+</body>
+</html>
